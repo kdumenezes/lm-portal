@@ -7,7 +7,7 @@ const CONFIG = {
   CLIENT_ID: '006933b2-4896-4a69-b358-7c3abd3fcb87',
   TENANT_ID: '5c26622f-2878-40e4-ac31-0b8abaace688',
   REDIRECT:  'https://lemon-ocean-03478f91e.7.azurestaticapps.net',
-  SCOPES:    ['Calendars.Read', 'User.Read'],
+  SCOPES:    ['Calendars.Read', 'Calendars.Read.Shared', 'User.Read'],
   API_URL:   '',
   ATUALIZAR: 60,
 };
@@ -157,8 +157,10 @@ async function loadCalendar() {
     const fim   = new Date();
     fim.setDate(fim.getDate() + 14);
 
+    // Busca o calendário compartilhado do grupo Agenda LM
+    const GROUP_EMAIL = 'agendalm@lmrs.com.br';
     const res = await fetch(
-      `https://graph.microsoft.com/v1.0/me/calendarView` +
+      `https://graph.microsoft.com/v1.0/users/${GROUP_EMAIL}/calendarView` +
       `?startDateTime=${agora.toISOString()}` +
       `&endDateTime=${fim.toISOString()}` +
       `&$orderby=start/dateTime&$top=20` +
