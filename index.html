@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LM Informática — Portal Interno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-box">
+        <span class="logo-lm">LM</span>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">LM Informática</span>
+        <span class="brand-sub">Portal Interno</span>
+      </div>
+    </div>
+    <nav class="topnav">
+      <a class="nav-link active" onclick="showPage('inicio')">Início</a>
+      <a class="nav-link" onclick="showPage('os')">Ordens de Serviço</a>
+      <a class="nav-link" onclick="showPage('agenda')">Agenda</a>
+      <a class="nav-link" onclick="showPage('clientes')">Clientes</a>
+      <a class="nav-link" onclick="showPage('tecnicos')">Técnicos</a>
+    </nav>
+    <div class="topbar-user">
+      <div class="user-dot"></div>
+      <div class="avatar">LM</div>
+      <span class="user-name">Administrador</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-title">Portal <span class="hero-accent">LM Informática</span></div>
+      <div class="hero-sub" id="hero-date">Carregando...</div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-aberto">18</div>
+        <div class="stat-lbl">OS em Aberto</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-manutencao">7</div>
+        <div class="stat-lbl">Em Manutenção</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num ok" id="stat-pronta">12</div>
+        <div class="stat-lbl">Prontas p/ Retirada</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num warn" id="stat-urgente">3</div>
+        <div class="stat-lbl">Urgentes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="searchbar">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Buscar OS, cliente, equipamento..." oninput="filterOS()">
+    </div>
+    <div class="filter-chips">
+      <span class="chip active" onclick="setChip(this,'todos')">Todos</span>
+      <span class="chip" onclick="setChip(this,'aberto')">Em Aberto</span>
+      <span class="chip" onclick="setChip(this,'manutencao')">Manutenção</span>
+      <span class="chip" onclick="setChip(this,'pronta')">Prontas</span>
+      <span class="chip" onclick="setChip(this,'urgente')">Urgentes</span>
+    </div>
+    <button class="btn-primary" onclick="filterOS()">Buscar</button>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main-grid">
+
+    <!-- OS TABLE -->
+    <section class="card os-card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          Ordens de Serviço
+        </div>
+        <div class="card-header-right">
+          <span class="systec-badge">● Systec / Firebird</span>
+          <button class="btn-refresh" onclick="loadOS()" title="Atualizar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="os-tabs">
+        <button class="os-tab active" onclick="switchTab(this,'aberto')">Em Aberto <span class="tab-count" id="count-aberto">18</span></button>
+        <button class="os-tab" onclick="switchTab(this,'manutencao')">Manutenção <span class="tab-count" id="count-manutencao">7</span></button>
+        <button class="os-tab" onclick="switchTab(this,'pronta')">Prontas <span class="tab-count ok" id="count-pronta">12</span></button>
+      </div>
+      <div class="table-wrap">
+        <table class="os-table" id="os-table">
+          <thead>
+            <tr>
+              <th>Nº OS</th>
+              <th>Cliente</th>
+              <th>Equipamento / Problema</th>
+              <th>Entrada</th>
+              <th>Previsão</th>
+              <th>Status</th>
+              <th>Técnico</th>
+            </tr>
+          </thead>
+          <tbody id="os-tbody">
+            <!-- preenchido pelo JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- AGENDA -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Agenda
+          </div>
+          <a class="card-link">Ver tudo →</a>
+        </div>
+        <div id="agenda-list" class="agenda-list">
+          <!-- preenchido pelo JS -->
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+            Resumo do Mês
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-num">37</div><div class="kpi-lbl">OS Abertas</div></div>
+          <div class="kpi ok"><div class="kpi-num">28</div><div class="kpi-lbl">Entregues</div></div>
+          <div class="kpi warn"><div class="kpi-num">12</div><div class="kpi-lbl">Aguardando</div></div>
+          <div class="kpi urg"><div class="kpi-num">3</div><div class="kpi-lbl">Urgentes</div></div>
+        </div>
+      </div>
+
+      <!-- TÉCNICOS -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Técnicos
+          </div>
+        </div>
+        <div id="tecnicos-list" class="tecnicos-list">
+          <!-- preenchido pelo JS -->
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
