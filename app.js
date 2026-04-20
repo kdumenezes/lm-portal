@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  LM Informática — Portal Interno                         ║
-// ║  app.js v5 — agenda login corrigido                      ║
+// ║  app.js v3 — agenda login corrigido                      ║
 // ╚══════════════════════════════════════════════════════════╝
 
 const CONFIG = {
@@ -34,7 +34,7 @@ const DEMO_OS = [
 ];
 
 const DEMO_TECNICOS = [
-  { iniciais:'RC', nome:'Felipe Costa', os_count:5, carga:83 },
+  { iniciais:'RC', nome:'Ricardo Costa', os_count:5, carga:83 },
   { iniciais:'FS', nome:'Felipe Santos', os_count:4, carga:67 },
   { iniciais:'LS', nome:'Lucas Silva',   os_count:3, carga:50 },
 ];
@@ -215,15 +215,21 @@ function renderCalendarM365(events) {
       </div>
       <div class="ev-list">
         ${events.map(ev => {
-          const hora = ev.start.dateTime
-            ? new Date(ev.start.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
-            : 'Dia inteiro';
+          const horaInicio = ev.start.dateTime
+            ? new Date(ev.start.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'})
+            : null;
+          const horaFim = ev.end.dateTime
+            ? new Date(ev.end.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'})
+            : null;
+          const horaStr = horaInicio && horaFim
+            ? `${horaInicio} – ${horaFim}`
+            : horaInicio || 'Dia inteiro';
           const local = ev.location?.displayName || '';
           return `<div class="ev-item">
             <div class="ev-dot" style="background:${cor(ev.categories)}"></div>
             <div class="ev-content">
               <div class="ev-title">${ev.subject}</div>
-              <div class="ev-time">${hora}${local?' — '+local:''}</div>
+              <div class="ev-time">${horaStr}${local?' — '+local:''}</div>
             </div>
           </div>`;
         }).join('')}
@@ -427,7 +433,120 @@ function setChip(el, filter) {
 
 function filterOS()  { renderOS(); }
 function openOS(id)  { console.log('OS selecionada:', allOS.find(o=>o.id===id)); }
-function showPage()  { document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active')); if(event?.target) event.target.classList.add('active'); }
+
+// ── NAVEGAÇÃO DE PÁGINAS ──────────────────────────────────
+let calWeekOffset = 0;
+
+function showPage(page) {
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  if (event?.target) event.target.classList.add('active');
+
+  const pageMain   = document.getElementById('page-main');
+  const pageAgenda = document.getElementById('page-agenda');
+  const searchBar  = document.querySelector('.searchbar');
+  const heroEl     = document.querySelector('.hero');
+
+  if (page === 'agenda') {
+    if (pageMain)   pageMain.style.display   = 'none';
+    if (pageAgenda) pageAgenda.style.display = 'block';
+    if (searchBar)  searchBar.style.display  = 'none';
+    if (heroEl)     heroEl.style.display     = 'none';
+    calWeekOffset = 0;
+    renderAgendaPage();
+  } else {
+    if (pageMain)   pageMain.style.display   = '';
+    if (pageAgenda) pageAgenda.style.display = 'none';
+    if (searchBar)  searchBar.style.display  = '';
+    if (heroEl)     heroEl.style.display     = '';
+  }
+}
+
+function navCal(dir)  { calWeekOffset += dir; renderAgendaPage(); }
+function navCalToday(){ calWeekOffset = 0;    renderAgendaPage(); }
+
+async function renderAgendaPage() {
+  const container = document.getElementById('agenda-full-content');
+  const subEl     = document.getElementById('agenda-page-sub');
+  if (!container) return;
+
+  // Semana atual + offset
+  const hoje   = new Date();
+  const dow    = hoje.getDay();
+  const inicio = new Date(hoje);
+  inicio.setDate(hoje.getDate() - dow + (calWeekOffset * 7));
+  inicio.setHours(0,0,0,0);
+  const fim = new Date(inicio);
+  fim.setDate(inicio.getDate() + 6);
+  fim.setHours(23,59,59,999);
+
+  const opts = { day:'numeric', month:'long' };
+  if (subEl) subEl.textContent =
+    `${inicio.toLocaleDateString('pt-BR',opts)} – ${fim.toLocaleDateString('pt-BR',opts)} de ${fim.getFullYear()}`;
+
+  container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-sec);font-size:13px">Carregando...</div>`;
+
+  let events = [];
+  try {
+    const token = await getToken();
+    if (!token) throw new Error('sem token');
+    const GROUP_ID = '40d28b1d-bea5-4ca0-adb6-6912e62a3fc8';
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/groups/${GROUP_ID}/calendar/calendarView` +
+      `?startDateTime=${inicio.toISOString()}&endDateTime=${fim.toISOString()}` +
+      `&$orderby=start/dateTime&$top=50&$select=subject,start,end,location,categories`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = await res.json();
+    events = data.value || [];
+  } catch(e) {
+    console.warn('Agenda page error:', e);
+  }
+
+  const semCurta = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const hojeStr  = new Date().toDateString();
+
+  // Agrupa por dia (dom → sáb)
+  const byDay = {};
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(inicio);
+    d.setDate(inicio.getDate() + i);
+    byDay[d.toDateString()] = { date: d, events: [] };
+  }
+  events.forEach(ev => {
+    const d   = new Date(ev.start.dateTime || ev.start.date);
+    const key = d.toDateString();
+    if (byDay[key]) byDay[key].events.push(ev);
+  });
+
+  const cols = Object.values(byDay).map(({ date, events }) => {
+    const isHoje = date.toDateString() === hojeStr;
+    const evHtml = events.length
+      ? events.map(ev => {
+          const hi    = ev.start.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}) : '';
+          const hf    = ev.end.dateTime   ? new Date(ev.end.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}) : '';
+          const hora  = hi && hf ? `${hi} – ${hf}` : hi || 'Dia inteiro';
+          const local = ev.location?.displayName || '';
+          return `<div class="agenda-ev">
+            <div class="agenda-ev-time">${hora}</div>
+            <div class="agenda-ev-title">${ev.subject}</div>
+            ${local ? `<div class="agenda-ev-local">${local}</div>` : ''}
+          </div>`;
+        }).join('')
+      : `<div class="agenda-empty">Sem eventos</div>`;
+
+    return `<div class="agenda-day-col ${isHoje?'today':''}">
+      <div class="agenda-day-header">
+        <div class="agenda-day-num">${date.getDate()}</div>
+        <div class="agenda-day-name">${semCurta[date.getDay()]}</div>
+      </div>
+      ${evHtml}
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `<div class="agenda-week-grid">${cols}</div>`;
+}
+
 
 // ── UTILS ─────────────────────────────────────────────────
 function formatDate(s) { if(!s) return '—'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
