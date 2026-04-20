@@ -164,7 +164,7 @@ async function loadCalendar() {
       `?startDateTime=${agora.toISOString()}` +
       `&endDateTime=${fim.toISOString()}` +
       `&$orderby=start/dateTime&$top=20` +
-      `&$select=subject,start,end,location,categories`,
+      `&$select=subject,start,end,location,categories,body,organizer`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!res.ok) throw new Error(`Graph error ${res.status}`);
@@ -215,17 +215,9 @@ function renderCalendarM365(events) {
       </div>
       <div class="ev-list">
         ${events.map(ev => {
-          const horaInicio = ev.start.dateTime
-            ? new Date(ev.start.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'})
-            : null;
-          const horaFim = ev.end.dateTime
-            ? new Date(ev.end.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'})
-            : null;
-          const horaStr = horaInicio && horaFim
-            ? `${horaInicio} – ${horaFim}`
-            : horaInicio || 'Dia inteiro';
+          const horaStr = formatHoraRange(ev);
           const local = ev.location?.displayName || '';
-          return `<div class="ev-item">
+          return `<div class="ev-item" onclick='openEventModal(${JSON.stringify(ev).replace(/'/g,"&#39;")})' style="cursor:pointer">
             <div class="ev-dot" style="background:${cor(ev.categories)}"></div>
             <div class="ev-content">
               <div class="ev-title">${ev.subject}</div>
@@ -493,7 +485,7 @@ async function renderAgendaPage() {
     const res = await fetch(
       `https://graph.microsoft.com/v1.0/groups/${GROUP_ID}/calendar/calendarView` +
       `?startDateTime=${inicio.toISOString()}&endDateTime=${fim.toISOString()}` +
-      `&$orderby=start/dateTime&$top=50&$select=subject,start,end,location,categories`,
+      `&$orderby=start/dateTime&$top=50&$select=subject,start,end,location,categories,body,organizer`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!res.ok) throw new Error(`${res.status}`);
@@ -523,14 +515,13 @@ async function renderAgendaPage() {
     const isHoje = date.toDateString() === hojeStr;
     const evHtml = events.length
       ? events.map(ev => {
-          const hi    = ev.start.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}) : '';
-          const hf    = ev.end.dateTime   ? new Date(ev.end.dateTime).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}) : '';
-          const hora  = hi && hf ? `${hi} – ${hf}` : hi || 'Dia inteiro';
-          const local = ev.location?.displayName || '';
-          return `<div class="agenda-ev">
+          const hora  = formatHoraRange(ev);
+          const local = ev.location?.displayName || "";
+          const evData = JSON.stringify(ev).replace(/'/g,"\u0027");
+          return `<div class="agenda-ev" onclick="openEventModal(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(ev))}')))" style="cursor:pointer">
             <div class="agenda-ev-time">${hora}</div>
             <div class="agenda-ev-title">${ev.subject}</div>
-            ${local ? `<div class="agenda-ev-local">${local}</div>` : ''}
+            ${local ? `<div class="agenda-ev-local">${local}</div>` : ""}
           </div>`;
         }).join('')
       : `<div class="agenda-empty">Sem eventos</div>`;
@@ -552,6 +543,133 @@ async function renderAgendaPage() {
 function formatDate(s) { if(!s) return '—'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
 function isOverdue(s)  { return s ? new Date(s)<new Date() : false; }
 function setText(id,v) { const el=document.getElementById(id); if(el) el.textContent=v; }
+
+// Converte dateTime do Graph para horário de Brasília
+// O Outlook retorna sem 'Z' quando tem fuso próprio — adicionamos Z para forçar UTC
+// e depois convertemos para America/Sao_Paulo
+function parseEventTime(dateTimeStr, timeZoneStr) {
+  if (!dateTimeStr) return null;
+  // Se já tem Z ou +, usa direto; senão adiciona Z (é UTC)
+  const iso = /Z|[+-]\d{2}:\d{2}$/.test(dateTimeStr)
+    ? dateTimeStr
+    : dateTimeStr + 'Z';
+  return new Date(iso);
+}
+
+function formatHora(dateTimeStr, timeZoneStr) {
+  const d = parseEventTime(dateTimeStr, timeZoneStr);
+  if (!d) return '';
+  return d.toLocaleTimeString('pt-BR', {
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Sao_Paulo'
+  });
+}
+
+function formatHoraRange(ev) {
+  const hi = formatHora(ev.start?.dateTime, ev.start?.timeZone);
+  const hf = formatHora(ev.end?.dateTime,   ev.end?.timeZone);
+  if (!hi) return 'Dia inteiro';
+  return hf ? `${hi} – ${hf}` : hi;
+}
+
+// ── MODAL DE DETALHES DO EVENTO ───────────────────────────
+function openEventModal(ev) {
+  // Remove modal anterior se existir
+  const old = document.getElementById('event-modal');
+  if (old) old.remove();
+
+  const hora  = formatHoraRange(ev);
+  const local = ev.location?.displayName || '';
+  const org   = ev.organizer?.emailAddress?.name || '';
+
+  // Extrai texto do body sem HTML
+  let desc = '';
+  if (ev.body?.content) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = ev.body.content;
+    desc = tmp.textContent?.trim() || '';
+    if (desc.length > 300) desc = desc.substring(0, 300) + '...';
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'event-modal';
+  modal.style.cssText = `
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,29,107,0.7);z-index:1000;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  `;
+  modal.onclick = (e) => { if(e.target===modal) modal.remove(); };
+  modal.innerHTML = `
+    <div style="
+      background:white;border-radius:12px;
+      width:100%;max-width:480px;overflow:hidden;
+      box-shadow:0 20px 60px rgba(0,0,0,0.3)
+    ">
+      <div style="background:#00296b;padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:11px;color:rgba(255,213,0,0.8);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Compromisso</div>
+          <div style="font-size:17px;font-weight:700;color:white;line-height:1.3">${ev.subject}</div>
+        </div>
+        <button onclick="document.getElementById('event-modal').remove()" style="
+          background:rgba(255,255,255,0.15);border:none;color:white;
+          width:28px;height:28px;border-radius:50%;font-size:16px;
+          cursor:pointer;display:flex;align-items:center;justify-content:center;
+          flex-shrink:0;margin-left:12px
+        ">×</button>
+      </div>
+      <div style="padding:18px 20px">
+        <div style="display:grid;gap:12px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="width:32px;height:32px;background:#e6eef7;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00509d" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#6b8279;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Horário</div>
+              <div style="font-size:14px;font-weight:600;color:#00296b;margin-top:1px">${hora}</div>
+            </div>
+          </div>
+          ${local ? `
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="width:32px;height:32px;background:#e6eef7;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00509d" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#6b8279;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Local</div>
+              <div style="font-size:14px;color:#00296b;margin-top:1px">${local}</div>
+            </div>
+          </div>` : ''}
+          ${org ? `
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="width:32px;height:32px;background:#e6eef7;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00509d" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#6b8279;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Organizador</div>
+              <div style="font-size:14px;color:#00296b;margin-top:1px">${org}</div>
+            </div>
+          </div>` : ''}
+          ${desc ? `
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="width:32px;height:32px;background:#e6eef7;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00509d" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#6b8279;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Descrição</div>
+              <div style="font-size:13px;color:#4a6080;margin-top:1px;line-height:1.5">${desc}</div>
+            </div>
+          </div>` : ''}
+        </div>
+        <button onclick="document.getElementById('event-modal').remove()" style="
+          width:100%;margin-top:18px;background:#00296b;color:white;
+          border:none;border-radius:8px;padding:10px;font-size:13px;
+          font-weight:600;cursor:pointer;font-family:Barlow,sans-serif
+        ">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
 function loadScript(src) {
   return new Promise((res,rej) => {
     if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
