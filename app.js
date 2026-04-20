@@ -1,13 +1,13 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  LM Informática — Portal Interno                         ║
-// ║  app.js v3 — agenda login corrigido                      ║
+// ║  app.js v5 — agenda login corrigido                      ║
 // ╚══════════════════════════════════════════════════════════╝
 
 const CONFIG = {
   CLIENT_ID: '006933b2-4896-4a69-b358-7c3abd3fcb87',
   TENANT_ID: '5c26622f-2878-40e4-ac31-0b8abaace688',
   REDIRECT:  'https://lemon-ocean-03478f91e.7.azurestaticapps.net',
-  SCOPES:    ['Calendars.Read', 'Calendars.Read.Shared', 'User.Read'],
+  SCOPES:    ['Calendars.Read', 'Calendars.Read.Shared', 'Group.Read.All', 'User.Read'],
   API_URL:   '',
   ATUALIZAR: 60,
 };
@@ -34,7 +34,7 @@ const DEMO_OS = [
 ];
 
 const DEMO_TECNICOS = [
-  { iniciais:'RC', nome:'Ricardo Costa', os_count:5, carga:83 },
+  { iniciais:'RC', nome:'Felipe Costa', os_count:5, carga:83 },
   { iniciais:'FS', nome:'Felipe Santos', os_count:4, carga:67 },
   { iniciais:'LS', nome:'Lucas Silva',   os_count:3, carga:50 },
 ];
@@ -157,10 +157,10 @@ async function loadCalendar() {
     const fim   = new Date();
     fim.setDate(fim.getDate() + 14);
 
-    // Busca o calendário compartilhado do grupo Agenda LM
-    const GROUP_EMAIL = 'agendalm@lmrs.com.br';
+    // Busca o calendário do grupo Microsoft 365 "Agenda LM"
+    const GROUP_ID = '40d28b1d-bea5-4ca0-adb6-6912e62a3fc8';
     const res = await fetch(
-      `https://graph.microsoft.com/v1.0/users/${GROUP_EMAIL}/calendarView` +
+      `https://graph.microsoft.com/v1.0/groups/${GROUP_ID}/calendar/calendarView` +
       `?startDateTime=${agora.toISOString()}` +
       `&endDateTime=${fim.toISOString()}` +
       `&$orderby=start/dateTime&$top=20` +
