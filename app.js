@@ -8,8 +8,8 @@ const CONFIG = {
   TENANT_ID: '5c26622f-2878-40e4-ac31-0b8abaace688',
   REDIRECT:  'https://lemon-ocean-03478f91e.7.azurestaticapps.net',
   SCOPES:    ['Calendars.Read', 'Calendars.Read.Shared', 'Group.Read.All', 'User.Read'],
-  API_URL:   '',
-  ATUALIZAR: 60,
+  API_URL:   'https://lminformatica.blob.core.windows.net/portal-data/os.json',
+  ATUALIZAR: 300,  // 5 minutos — sincronizado com o agente
 };
 
 let msalInstance   = null;
@@ -321,11 +321,28 @@ function renderAgendaDemo() {
 // ── ORDENS DE SERVIÇO ─────────────────────────────────────
 async function loadOS() {
   try {
-    allOS = CONFIG.API_URL
-      ? await fetch(`${CONFIG.API_URL}/api/os`).then(r => r.json())
-      : DEMO_OS;
-  } catch {
+    // Adiciona timestamp para evitar cache do browser
+    const url = `${CONFIG.API_URL}?t=${Date.now()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // O JSON do agente tem { gerado_em, totais, os: [...] }
+    allOS = Array.isArray(data) ? data : (data.os || []);
+
+    // Mostra horário da última sincronização
+    if (data.gerado_em) {
+      const dt = new Date(data.gerado_em);
+      const hora = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+      const badge = document.querySelector('.systec-badge');
+      if (badge) badge.textContent = `● Systec · atualizado às ${hora}`;
+    }
+
+  } catch (err) {
+    console.warn('Usando dados demo — erro ao carregar OS:', err);
     allOS = DEMO_OS;
+    const badge = document.querySelector('.systec-badge');
+    if (badge) { badge.textContent = '⚠ Modo demo'; badge.style.background = '#fef3cd'; badge.style.color = '#92600a'; }
   }
   renderOS();
   updateStats();
