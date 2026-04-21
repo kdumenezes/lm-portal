@@ -20,17 +20,17 @@ let allOS          = [];
 
 // ── DADOS DEMO OS ─────────────────────────────────────────
 const DEMO_OS = [
-  { id:'OS-4821', cliente:'João Silva',        telefone:'(51) 99999-1234', equipamento:'Notebook Dell Inspiron', problema:'Tela quebrada',         entrada:'2026-04-17', previsao:'2026-04-22', status:'aberto',     urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa' },
-  { id:'OS-4820', cliente:'Pedro Santos',      telefone:'(51) 95555-7890', equipamento:'Notebook Lenovo',        problema:'Troca de HD por SSD',   entrada:'2026-04-17', previsao:'2026-04-20', status:'manutencao', urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa' },
-  { id:'OS-4819', cliente:'Maria Oliveira',    telefone:'(51) 98888-5678', equipamento:'PC Desktop',             problema:'Não liga',              entrada:'2026-04-16', previsao:'2026-04-19', status:'aberto',     urgente:true,  tecnico:'FS', tecnico_nome:'Felipe Santos' },
-  { id:'OS-4817', cliente:'Loja Central',      telefone:'(51) 3222-1111',  equipamento:'Servidor',               problema:'Configuração de rede',  entrada:'2026-04-16', previsao:'2026-04-22', status:'manutencao', urgente:false, tecnico:'LS', tecnico_nome:'Lucas Silva'   },
-  { id:'OS-4815', cliente:'Empresa ABC Ltda.', telefone:'(51) 3333-4444',  equipamento:'Impressora HP',          problema:'Papel emperrado',       entrada:'2026-04-15', previsao:'2026-04-21', status:'aberto',     urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa' },
-  { id:'OS-4812', cliente:'Fernanda Lima',     telefone:'(51) 94444-2345', equipamento:'iMac',                   problema:'Limpeza e formatação',  entrada:'2026-04-15', previsao:'2026-04-21', status:'manutencao', urgente:false, tecnico:'FS', tecnico_nome:'Felipe Santos' },
-  { id:'OS-4810', cliente:'Carlos Pereira',    telefone:'(51) 97777-9012', equipamento:'Tablet Samsung',         problema:'Bateria não carrega',   entrada:'2026-04-14', previsao:'2026-04-23', status:'aberto',     urgente:false, tecnico:'LS', tecnico_nome:'Lucas Silva'   },
-  { id:'OS-4808', cliente:'Ana Rodrigues',     telefone:'(51) 96666-3456', equipamento:'Macbook Air',            problema:'Sistema travando',      entrada:'2026-04-13', previsao:'2026-04-19', status:'aberto',     urgente:true,  tecnico:'FS', tecnico_nome:'Felipe Santos' },
-  { id:'OS-4805', cliente:'Roberto Alves',     telefone:'(51) 93333-6789', equipamento:'Notebook Acer',          problema:'Teclado substituído',   entrada:'2026-04-12', previsao:'2026-04-15', status:'pronta',     urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa', valor:280.00 },
-  { id:'OS-4802', cliente:'Sílvia Moura',      telefone:'(51) 92222-0123', equipamento:'PC Desktop',             problema:'Formatação Windows 11', entrada:'2026-04-11', previsao:'2026-04-14', status:'pronta',     urgente:false, tecnico:'FS', tecnico_nome:'Felipe Santos', valor:150.00 },
-  { id:'OS-4799', cliente:'Tech Solutions',    telefone:'(51) 3444-5555',  equipamento:'Impressora',             problema:'Manutenção preventiva', entrada:'2026-04-10', previsao:'2026-04-13', status:'pronta',     urgente:false, tecnico:'LS', tecnico_nome:'Lucas Silva',   valor:90.00  },
+  { id:'OS-4821', cliente:'João Silva',        problema:'Notebook Dell Inspiron — tela quebrada',   entrada:'2026-04-17', previsao:null, status:'aberto',     urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa' },
+  { id:'OS-4820', cliente:'Pedro Santos',      problema:'Notebook Lenovo — troca de HD por SSD',    entrada:'2026-04-17', previsao:null, status:'manutencao', urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa' },
+  { id:'OS-4819', cliente:'Maria Oliveira',    problema:'PC Desktop — não liga',                    entrada:'2026-04-16', previsao:null, status:'aberto',     urgente:true,  tecnico:'FS', tecnico_nome:'Felipe Santos' },
+  { id:'OS-4817', cliente:'Loja Central',      problema:'Servidor — configuração de rede',          entrada:'2026-04-16', previsao:null, status:'manutencao', urgente:false, tecnico:'LS', tecnico_nome:'Lucas Silva'   },
+  { id:'OS-4815', cliente:'Empresa ABC Ltda.', problema:'Impressora HP — papel emperrado',          entrada:'2026-04-15', previsao:null, status:'aberto',     urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa' },
+  { id:'OS-4812', cliente:'Fernanda Lima',     problema:'iMac — limpeza e formatação',              entrada:'2026-04-15', previsao:null, status:'manutencao', urgente:false, tecnico:'FS', tecnico_nome:'Felipe Santos' },
+  { id:'OS-4810', cliente:'Carlos Pereira',    problema:'Tablet Samsung — bateria não carrega',     entrada:'2026-04-14', previsao:null, status:'aberto',     urgente:false, tecnico:'LS', tecnico_nome:'Lucas Silva'   },
+  { id:'OS-4808', cliente:'Ana Rodrigues',     problema:'Macbook Air — sistema travando',           entrada:'2026-04-13', previsao:null, status:'aberto',     urgente:true,  tecnico:'FS', tecnico_nome:'Felipe Santos' },
+  { id:'OS-4805', cliente:'Roberto Alves',     problema:'Notebook Acer — teclado substituído',      entrada:'2026-04-12', previsao:null, status:'pronta',     urgente:false, tecnico:'RC', tecnico_nome:'Ricardo Costa' },
+  { id:'OS-4802', cliente:'Sílvia Moura',      problema:'PC Desktop — formatação Windows 11',       entrada:'2026-04-11', previsao:null, status:'pronta',     urgente:false, tecnico:'FS', tecnico_nome:'Felipe Santos' },
+  { id:'OS-4799', cliente:'Tech Solutions',    problema:'Impressora — manutenção preventiva',       entrada:'2026-04-10', previsao:null, status:'pronta',     urgente:false, tecnico:'LS', tecnico_nome:'Lucas Silva'   },
 ];
 
 const DEMO_TECNICOS = [
@@ -361,7 +361,7 @@ function renderOS() {
     const matchSearch = !search
       || os.id.toLowerCase().includes(search)
       || os.cliente.toLowerCase().includes(search)
-      || os.equipamento.toLowerCase().includes(search)
+      || (os.equipamento || '').toLowerCase().includes(search)
       || os.problema.toLowerCase().includes(search);
     return matchTab && matchFilter && matchSearch;
   });
@@ -390,8 +390,8 @@ function renderOS() {
       ? `<div style="font-size:11px;color:#059669;font-weight:700;margin-top:2px">R$ ${os.valor.toFixed(2).replace('.',',')}</div>` : '';
     return `<tr onclick="openOS('${os.id}')">
       <td><div class="os-num">${os.id}</div></td>
-      <td><div class="os-client">${os.cliente}</div><div class="os-phone">${os.telefone}</div></td>
-      <td><span style="font-size:12px">${os.equipamento}</span><div class="os-phone">${os.problema}</div>${valor}</td>
+      <td><div class="os-client">${os.cliente}</div>${os.telefone ? `<div class="os-phone">${os.telefone}</div>` : ''}</td>
+      <td><span style="font-size:12px">${os.equipamento || os.problema || '—'}</span>${os.equipamento && os.problema ? `<div class="os-phone">${os.problema}</div>` : ''}${valor}</td>
       <td style="font-size:11px;color:var(--text-sec)">${formatDate(os.entrada)}</td>
       <td style="font-size:11px;${prevStyle}">${formatDate(os.previsao)}</td>
       <td>${badge}</td>
