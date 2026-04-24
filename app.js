@@ -495,6 +495,41 @@ function setChip(el, filter) {
 function filterOS()  { renderOS(); }
 function openOS(id)  { console.log('OS selecionada:', allOS.find(o=>o.id===id)); }
 
+// ── LOGOUT ────────────────────────────────────────────────
+async function logout() {
+  if (!msalInstance || !currentAccount) {
+    showDashboard(false);
+    return;
+  }
+  try {
+    // Limpa sessão e volta para tela de login
+    await msalInstance.logout({
+      account: currentAccount,
+      onRedirectNavigate: () => {
+        // Evita redirect externo — fica na mesma página
+        showDashboard(false);
+        currentAccount = null;
+        // Reseta avatar
+        const av = document.querySelector('.avatar');
+        const nm = document.querySelector('.user-name');
+        const dt = document.querySelector('.user-dot');
+        if (av) av.textContent = 'LM';
+        if (nm) nm.textContent = 'Administrador';
+        if (dt) dt.style.background = '#6b8279';
+        return false; // false = não redireciona para fora
+      }
+    });
+  } catch(e) {
+    console.error('Erro logout:', e);
+    // Fallback — força volta para tela de login
+    sessionStorage.clear();
+    showDashboard(false);
+    currentAccount = null;
+  }
+}
+
+
+
 // ── NAVEGAÇÃO DE PÁGINAS ──────────────────────────────────
 let calWeekOffset = 0;
 
