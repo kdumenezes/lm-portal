@@ -10,7 +10,115 @@
 </head>
 <body>
 
-  <!-- TOPBAR -->
+  <!-- ══════════════════════════════════════════════════════
+       TELA DE LOGIN — visível antes da autenticação
+       Escondida automaticamente após login bem-sucedido
+  ══════════════════════════════════════════════════════ -->
+  <div id="login-screen">
+    <div class="login-bg">
+      <!-- Painel esquerdo — identidade visual -->
+      <div class="login-left">
+        <div class="login-left-content">
+          <img src="logo-lm.jpg" alt="LM Informática" class="login-logo">
+          <h1 class="login-brand">LM Informática</h1>
+          <p class="login-tagline">28 Anos de Tecnologia</p>
+          <div class="login-features">
+            <div class="login-feature">
+              <span class="login-feature-icon">📋</span>
+              <span>Ordens de Serviço em tempo real</span>
+            </div>
+            <div class="login-feature">
+              <span class="login-feature-icon">📅</span>
+              <span>Agenda integrada ao Microsoft 365</span>
+            </div>
+            <div class="login-feature">
+              <span class="login-feature-icon">👥</span>
+              <span>Gestão de técnicos e clientes</span>
+            </div>
+            <div class="login-feature">
+              <span class="login-feature-icon">🔒</span>
+              <span>Acesso restrito à equipe LM</span>
+            </div>
+          </div>
+        </div>
+        <div class="login-left-footer">
+          Portal Interno · Uso exclusivo da equipe LM Informática
+        </div>
+      </div>
+
+      <!-- Painel direito — formulário de login -->
+      <div class="login-right">
+        <div class="login-card">
+
+          <!-- Logo mobile (só aparece em tela pequena) -->
+          <div class="login-mobile-logo">
+            <img src="logo-lm.jpg" alt="LM" class="login-mobile-img">
+            <span>LM Informática</span>
+          </div>
+
+          <h2 class="login-title">Acesso ao Portal</h2>
+          <p class="login-subtitle">Entre com sua conta Microsoft da LM Informática para continuar.</p>
+
+          <!-- Botão principal de login -->
+          <button class="btn-ms-login" id="btn-login" onclick="loginM365()">
+            <svg width="20" height="20" viewBox="0 0 21 21" fill="none">
+              <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+              <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+            </svg>
+            Entrar com Microsoft 365
+          </button>
+
+          <!-- Estado de carregando (aparece ao clicar) -->
+          <div class="login-loading" id="login-loading">
+            <div class="login-spinner"></div>
+            <span>Verificando credenciais...</span>
+          </div>
+
+          <!-- Mensagem de erro -->
+          <div class="login-error" id="login-error">
+            <span class="login-error-icon">⛔</span>
+            <div>
+              <strong>Acesso negado</strong>
+              <p id="login-error-msg">Apenas contas @lmrs.com.br podem acessar este portal.</p>
+            </div>
+          </div>
+
+          <div class="login-divider">
+            <span>acesso seguro via</span>
+          </div>
+
+          <div class="login-ms-badge">
+            <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
+              <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+              <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+            </svg>
+            Microsoft Identity Platform
+          </div>
+
+          <p class="login-info">
+            Suas credenciais são verificadas diretamente pela Microsoft.<br>
+            O portal não armazena senhas.
+          </p>
+
+          <div class="login-domain-badge">
+            <span>🔒</span> Restrito a <strong>@lmrs.com.br</strong>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       DASHBOARD — oculto até login ser validado
+  ══════════════════════════════════════════════════════ -->
+  <div id="dashboard" style="display:none">
+
+
   <header class="topbar">
     <div class="brand">
       <div class="logo-box">
@@ -127,7 +235,7 @@
             <tr>
               <th>Nº OS</th>
               <th>Cliente</th>
-              <th>Equipamento / Problema</th>
+              <th>Problema / Descrição</th>
               <th>Entrada</th>
               <th>Previsão</th>
               <th>Status</th>
@@ -190,6 +298,8 @@
     </aside>
   </main>
   </div><!-- /page-main -->
+
+  </div><!-- /dashboard -->
 
   <script src="app.js"></script>
 </body>

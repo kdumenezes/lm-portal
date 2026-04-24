@@ -40,24 +40,53 @@ const DEMO_TECNICOS = [
 ];
 
 // ── INIT ──────────────────────────────────────────────────
+// ── DOMÍNIO PERMITIDO ─────────────────────────────────────
+const DOMINIO_PERMITIDO = 'lmrs.com.br';
+
+// ── INIT — Login obrigatório antes de tudo ─────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   setDate();
-  loadOS();
-  renderTecnicos();
 
-  // Mostra botão de login imediatamente — não espera MSAL carregar
-  showLoginPrompt();
+  // Bloqueia o dashboard — só libera após login validado
+  showDashboard(false);
 
-  // Carrega MSAL em paralelo
-  initMSAL().catch(err => {
-    console.warn('MSAL não carregou, agenda em modo demo:', err);
-    renderAgendaDemo();
-  });
-
-  setInterval(loadOS, CONFIG.ATUALIZAR * 1000);
+  try {
+    await initMSAL();
+  } catch (err) {
+    console.error('Erro MSAL:', err);
+    showLoginError('Erro ao conectar com Microsoft. Tente recarregar a página.');
+  }
 });
 
-// ── DATA ──────────────────────────────────────────────────
+// ── CONTROLE DE TELAS ─────────────────────────────────────
+function showDashboard(logado) {
+  const loginScreen = document.getElementById('login-screen');
+  const dashboard   = document.getElementById('dashboard');
+  if (loginScreen) loginScreen.style.display = logado ? 'none' : 'flex';
+  if (dashboard)   dashboard.style.display   = logado ? 'block' : 'none';
+}
+
+function showLoginError(msg) {
+  const loading = document.getElementById('login-loading');
+  const error   = document.getElementById('login-error');
+  const errorMsg = document.getElementById('login-error-msg');
+  const btn     = document.getElementById('btn-login');
+  if (loading) loading.classList.remove('visible');
+  if (error)   error.classList.add('visible');
+  if (errorMsg && msg) errorMsg.textContent = msg;
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+}
+
+function showLoginLoading() {
+  const loading = document.getElementById('login-loading');
+  const error   = document.getElementById('login-error');
+  const btn     = document.getElementById('btn-login');
+  if (loading) loading.classList.add('visible');
+  if (error)   error.classList.remove('visible');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+}
+
+
 function setDate() {
   const el = document.getElementById('hero-date');
   if (!el) return;
@@ -84,30 +113,52 @@ async function initMSAL() {
   // Trata retorno após redirect de login
   const response = await msalInstance.handleRedirectPromise();
   if (response && response.account) {
-    currentAccount = response.account;
+    await validarELiberar(response.account);
+    return;
   }
 
-  // Verifica se já há conta logada na sessão
+  // Verifica se ja tem sessao ativa
   const accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
-    currentAccount = accounts[0];
-    updateUserUI(currentAccount);
-    await loadCalendar();
-  } else {
-    // Nenhuma conta — mostra botão de login
-    showLoginPrompt();
+    await validarELiberar(accounts[0]);
   }
+  // Se nao tem sessao, tela de login ja esta visivel
+}
+
+// Valida dominio e libera o dashboard
+async function validarELiberar(account) {
+  const email   = account.username || '';
+  const dominio = (email.split('@')[1] || '').toLowerCase();
+
+  if (dominio !== DOMINIO_PERMITIDO) {
+    try { await msalInstance.logout({ account }); } catch(e) {}
+    showLoginError(
+      `Acesso negado. Apenas @${DOMINIO_PERMITIDO} podem acessar este portal. (Conta: ${email})`
+    );
+    return;
+  }
+
+  // Dominio valido — libera o dashboard
+  currentAccount = account;
+  updateUserUI(account);
+  showDashboard(true);
+
+  // Inicia o dashboard
+  loadOS();
+  renderTecnicos();
+  await loadCalendar();
+  setInterval(loadOS, CONFIG.ATUALIZAR * 1000);
 }
 
 // Chamado pelo botão "Entrar com Microsoft 365"
 async function loginM365() {
+  showLoginLoading();
   if (!msalInstance) {
-    // MSAL ainda não carregou — tenta inicializar agora
     try {
       await initMSAL();
-      if (!msalInstance) throw new Error('MSAL não disponível');
+      if (!msalInstance) throw new Error('MSAL nao disponivel');
     } catch(e) {
-      alert('Erro ao conectar com Microsoft. Tente recarregar a página.');
+      showLoginError('Erro ao conectar com Microsoft. Tente recarregar a pagina.');
       return;
     }
   }
@@ -115,6 +166,7 @@ async function loginM365() {
     await msalInstance.loginRedirect({ scopes: CONFIG.SCOPES });
   } catch(e) {
     console.error('Erro no login:', e);
+    showLoginError('Erro ao iniciar login. Tente novamente.');
   }
 }
 
