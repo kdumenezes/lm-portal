@@ -142,14 +142,16 @@ function renderOS() {
   });
 
   // Counts por tab
-  const counts = { aberto: 0, manutencao: 0, pronta: 0 };
+  const counts = { aberto: 0, manutencao: 0, pronta: 0, concluida: 0 };
   allOS.forEach(os => { if (counts[os.status] !== undefined) counts[os.status]++; });
   const ca = document.getElementById('count-aberto');
   const cm = document.getElementById('count-manutencao');
   const cp = document.getElementById('count-pronta');
+  const cc = document.getElementById('count-concluida');
   if (ca) ca.textContent = counts.aberto;
   if (cm) cm.textContent = counts.manutencao;
   if (cp) cp.textContent = counts.pronta;
+  if (cc) cc.textContent = counts.concluida;
 
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-sec);font-size:13px">Nenhuma OS encontrada</td></tr>`;
@@ -260,7 +262,7 @@ function setChip(el, filter) {
   el.classList.add('active');
   currentFilter = filter;
   // Sincroniza aba com filtro
-  if (['aberto','manutencao','pronta'].includes(filter)) {
+  if (['aberto','manutencao','pronta','concluida'].includes(filter)) {
     const tab = document.querySelector(`.os-tab[onclick*="${filter}"]`);
     if (tab) switchTab(tab, filter);
   } else {
